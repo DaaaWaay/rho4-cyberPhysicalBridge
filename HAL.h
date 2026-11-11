@@ -21,7 +21,7 @@ Author: Ivan Ling, 2026     Licence: GPL version 2
 
 #include <stdint.h>
 #include <avr/io.h>
-#include <util/setbaud.h>
+//#include <util/setbaud.h>
 
 class Peripheral {
 public:
@@ -87,45 +87,46 @@ public:
         ADCSRA |= _BV(ADEN); /* Enable ADC */
         ADCSRA |= _BV(ADIE); /* Enable interrupt */
         ADCSRA |= _BV(ADSC); /* Start Conversions */
-        sei();
+        
     }
     uint8_t read()
     {
         return ADC; //retuns an 8 bit number 0-256 of the input voltage
     }
 
-}
+};
 
 class serial : public Peripheral
 {
     private:
-        uint32_t baudeRate;
+        uint32_t baudRate;
 
     public:
+        serial(uint32_t baud = 9600) : baudRate(baud) {}
 
-        const char* name() {return "ADC Name";}// debug shit
-        Serial(uint32_t baud = 9600)
-        : baudeRate(baud)
-        {}    
-        void begin // initialise UART connection. again, stolen from QR
+        const char* name() { return "UART"; }   // debug
+
+        void begin()   // 8N1 on USART0 (PD0 = RXD0, PD1 = TXD0)
         {
-            UBRR0H = UBRRH_VALUE; 
-            UBRR0L = UBRRL_VALUE;
-            UCSR0A = USE_2X << U2X0;
+            uint16_t ubrr = (F_CPU + 8UL * baudRate) / (16UL * baudRate) - 1;  // rounded
+            UBRR0H = ubrr >> 8;
+            UBRR0L = ubrr & 0xFF;
+            UCSR0A = 0;                                   // normal speed (U2X0 = 0)
             UCSR0B = _BV(RXEN0) | _BV(TXEN0);
             UCSR0C = _BV(UCSZ00) | _BV(UCSZ01);
         }
 
-        void tx(uint8_t b) //from QR
+        void tx(uint8_t b)
         {
-            while(!(UCSR0A & _BV(UDRE0))); 
-            UDR0 = b; 
-        } 
-        uint8_t rx() //from QR
-        { 
-            while(!(UCSR0A & _BV(RXC0))); 
-            return UDR0; 
+            while (!(UCSR0A & _BV(UDRE0)));
+            UDR0 = b;
         }
-}
+
+        uint8_t rx()
+        {
+            while (!(UCSR0A & _BV(RXC0)));
+            return UDR0;
+        }
+};
 
 #endif

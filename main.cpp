@@ -1,6 +1,6 @@
 #include "HAL.h"
 
-void main()
+int main()
 {
     serial UART;
     PWMOutput output;
@@ -10,7 +10,7 @@ void main()
     output.begin();
     analIn.begin();
     
-    uint8_t dutyCycle = UART.rx()
+    uint8_t dutyCycle = UART.rx();
 
     while (true)
     {
